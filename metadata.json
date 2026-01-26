@@ -1,0 +1,5 @@
+{
+  "name": "Eco-City: Energy Flow Installation",
+  "description": "A high-fidelity interactive 3D installation demonstrating the symbiotic relationship between urban centers and sustainable energy sources (Solar & Wind). Built with React Three Fiber.",
+  "requestFramePermissions": []
+}
