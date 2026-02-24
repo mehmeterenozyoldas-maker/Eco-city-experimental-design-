@@ -6,9 +6,10 @@ import { EnergyStream } from './EnergyStream';
 interface WindFarmProps {
   count: number;
   windSpeed: number;
+  onSelect?: (u: any) => void;
 }
 
-export const WindFarm: React.FC<WindFarmProps> = ({ count, windSpeed }) => {
+export const WindFarm: React.FC<WindFarmProps> = ({ count, windSpeed, onSelect }) => {
   // Generate random positions
   const turbines = useMemo(() => {
     const temp = [];
@@ -23,7 +24,10 @@ export const WindFarm: React.FC<WindFarmProps> = ({ count, windSpeed }) => {
   }, [count]);
 
   return (
-    <group>
+    <group onClick={(e) => {
+      e.stopPropagation();
+      if (onSelect) onSelect({ type: 'Wind Farm', stats: { Turbines: count, WindSpeed: `${Math.round(windSpeed)} km/h`, Output: `${Math.round((windSpeed / 100) * 80)} MW` } });
+    }}>
       {turbines.map((t, i) => (
         <Turbine key={i} position={[t.x, 0, t.z]} windSpeed={windSpeed} offset={t.rotationOffset} />
       ))}

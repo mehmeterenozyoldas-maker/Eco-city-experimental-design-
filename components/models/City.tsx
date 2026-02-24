@@ -88,7 +88,7 @@ interface CityItem {
     color?: string;
 }
 
-export const City: React.FC = () => {
+export const City: React.FC<{ onSelect?: (u: any) => void }> = ({ onSelect }) => {
   const texture = useBuildingTexture();
   const { box, cyl, lGeo, tGeo } = useCityGeometries();
   
@@ -231,7 +231,10 @@ export const City: React.FC = () => {
   const tBuildings = buildings.filter(b => b.shapeType === 't');
 
   return (
-    <group>
+    <group onClick={(e) => { 
+      e.stopPropagation(); 
+      if (onSelect) onSelect({ type: 'City Center', stats: { Population: '1.2M', Demand: '80 MW', Status: 'Active' } }); 
+    }}>
         {/* --- Building Groups --- */}
         <Instances range={boxBuildings.length} geometry={box} material={buildingMaterial} castShadow receiveShadow>
             {boxBuildings.map((data, i) => (

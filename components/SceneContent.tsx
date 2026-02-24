@@ -1,39 +1,59 @@
 import React, { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Sparkles } from '@react-three/drei';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Sparkles, Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import { SimulationState } from '../types';
+import { SimulationState, SelectedUnit } from '../types';
 import { City } from './models/City';
 import { WindFarm } from './models/WindFarm';
 import { SolarFarm } from './models/SolarFarm';
 import { Terrain } from './models/Terrain';
 import { River } from './models/River';
+import { BatteryBank } from './models/BatteryBank';
 
 interface SceneContentProps {
   simState: SimulationState;
+  onSelect: (unit: SelectedUnit) => void;
 }
 
-export const SceneContent: React.FC<SceneContentProps> = ({ simState }) => {
+export const SceneContent: React.FC<SceneContentProps> = ({ simState, onSelect }) => {
   const lightRef = useRef<THREE.DirectionalLight>(null);
+  const starsRef = useRef<THREE.Group>(null);
+  const { scene } = useThree();
 
-  // Animate sun position based on sun intensity
+  // Animate sun position and day/night cycle
   useFrame((state) => {
+    const intensityNorm = simState.sunIntensity / 100;
+    
     if (lightRef.current) {
-      const angle = (simState.sunIntensity / 100) * (Math.PI / 2); 
+      const angle = intensityNorm * (Math.PI / 2); 
       lightRef.current.position.set(50, 20 + Math.sin(angle) * 60, 50 * Math.cos(angle));
-      lightRef.current.intensity = 0.5 + (simState.sunIntensity / 100) * 1.5;
+      lightRef.current.intensity = 0.5 + intensityNorm * 1.5;
+    }
+
+    // Day/Night background transition
+    const dayColor = new THREE.Color('#38bdf8'); // Light sky blue
+    const nightColor = new THREE.Color('#020409'); // Dark night
+    const currentColor = nightColor.clone().lerp(dayColor, intensityNorm);
+    
+    scene.background = currentColor;
+    scene.fog = new THREE.FogExp2(currentColor, 0.012);
+
+    // Fade stars based on daylight
+    if (starsRef.current) {
+      starsRef.current.traverse((child) => {
+        if (child.type === 'Points' && (child as any).material) {
+          (child as any).material.transparent = true;
+          (child as any).material.opacity = 1 - intensityNorm;
+        }
+      });
     }
   });
 
   return (
     <>
-      {/* Atmosphere & Fog */}
-      {/* 
-         Volumetric-ish Fog 
-         Using exponential fog with a dark blue tint creates a sense of depth and night-time atmosphere.
-         Density adjusted to 0.012 to obscure the horizon line and blend the floor with the sky.
-      */}
-      <fogExp2 attach="fog" args={['#020409', 0.012]} />
+      <group ref={starsRef}>
+        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      </group>
       
       {/* Ambient Dust Motes */}
       <Sparkles 
@@ -71,16 +91,30 @@ export const SceneContent: React.FC<SceneContentProps> = ({ simState }) => {
         <River />
         
         {/* Central City */}
-        <City />
+        <City onSelect={onSelect} />
         
         {/* Energy Sources */}
         <group position={[-50, 0, -35]}>
-          <WindFarm count={12} windSpeed={simState.windSpeed} />
+          <WindFarm count={12} windSpeed={simState.windSpeed} onSelect={onSelect} />
         </group>
         
         <group position={[50, 0, 35]}>
-          <SolarFarm count={64} sunIntensity={simState.sunIntensity} />
+          <SolarFarm count={64} sunIntensity={simState.sunIntensity} onSelect={onSelect} />
         </group>
+
+        {/* Battery Storage */}
+        <BatteryBank 
+          level={simState.batteryLevel} 
+          position={[30, 0, -25]} 
+          onSelect={() => onSelect({ 
+            type: 'Battery Bank', 
+            stats: { 
+              Level: `${Math.round(simState.batteryLevel)}%`, 
+              Capacity: '1000 MWh', 
+              Status: simState.batteryLevel > 50 ? 'Optimal' : 'Low' 
+            } 
+          })} 
+        />
       </group>
     </>
   );

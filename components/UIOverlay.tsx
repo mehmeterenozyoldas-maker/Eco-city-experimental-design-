@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { SimulationState } from '../types';
+import { SimulationState, SelectedUnit } from '../types';
+import { CameraView } from './CameraController';
 import { 
   BarChart, 
   Bar, 
@@ -9,16 +10,23 @@ import {
   ResponsiveContainer,
   Cell 
 } from 'recharts';
-import { Wind, Sun, Zap, RotateCw, Pause } from 'lucide-react';
+import { Wind, Sun, Zap, RotateCw, Pause, Camera, X, Battery } from 'lucide-react';
 
 interface UIOverlayProps {
   simState: SimulationState;
   onStateChange: (key: keyof SimulationState, value: number) => void;
   isAuto: boolean;
   toggleAuto: () => void;
+  cameraView: CameraView;
+  onCameraChange: (view: CameraView) => void;
+  selectedUnit: SelectedUnit | null;
+  onCloseUnit: () => void;
 }
 
-export const UIOverlay: React.FC<UIOverlayProps> = ({ simState, onStateChange, isAuto, toggleAuto }) => {
+export const UIOverlay: React.FC<UIOverlayProps> = ({ 
+  simState, onStateChange, isAuto, toggleAuto, 
+  cameraView, onCameraChange, selectedUnit, onCloseUnit 
+}) => {
   
   // Calculate output based on simulation inputs
   const solarOutput = (simState.sunIntensity / 100) * 60; // Max 60 units
@@ -46,7 +54,15 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ simState, onStateChange, i
           <p className="text-slate-400 text-xs font-sans mt-1">Sustainable Energy Grid Visualization</p>
         </div>
         
-        <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/50 p-4 rounded-lg shadow-2xl">
+        <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/50 p-4 rounded-lg shadow-2xl flex gap-6">
+           <div className="text-right border-r border-slate-700 pr-6">
+             <div className="text-xs text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-end gap-1">
+               <Battery size={14} /> Battery
+             </div>
+             <div className={`text-xl font-mono font-bold ${simState.batteryLevel > 20 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {Math.round(simState.batteryLevel)}%
+             </div>
+           </div>
            <div className="text-right">
              <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Grid Status</div>
              <div className={`text-xl font-mono font-bold ${netEnergy >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -55,6 +71,42 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ simState, onStateChange, i
            </div>
         </div>
       </header>
+
+      {/* Camera Tour Controls (Top Center) */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 flex gap-2 pointer-events-auto bg-slate-900/80 backdrop-blur-md border border-slate-700/50 p-2 rounded-full shadow-2xl">
+        <div className="flex items-center pl-3 pr-2 text-slate-400">
+          <Camera size={16} />
+        </div>
+        {(['free', 'drone', 'street', 'top'] as const).map(view => (
+          <button 
+            key={view}
+            onClick={() => onCameraChange(view)}
+            className={`px-4 py-1.5 rounded-full font-mono text-xs uppercase transition-colors ${cameraView === view ? 'bg-emerald-500 text-white' : 'hover:bg-slate-700 text-slate-300'}`}
+          >
+            {view}
+          </button>
+        ))}
+      </div>
+
+      {/* Selected Unit Panel */}
+      {selectedUnit && (
+        <div className="absolute top-32 right-6 w-72 bg-slate-900/90 backdrop-blur-lg border border-slate-700/50 p-6 rounded-xl shadow-2xl pointer-events-auto animate-[fadeIn_0.2s_ease-out]">
+          <div className="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+            <h2 className="font-mono text-lg text-white uppercase tracking-wider">{selectedUnit.type}</h2>
+            <button onClick={onCloseUnit} className="text-slate-400 hover:text-white transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+          <div className="flex flex-col gap-3">
+            {Object.entries(selectedUnit.stats).map(([key, value]) => (
+              <div key={key} className="flex justify-between text-sm items-center">
+                <span className="text-slate-400">{key}</span>
+                <span className="text-white font-mono bg-slate-800 px-2 py-1 rounded">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Main Stats Panel (Bottom Right) */}
       <div className="absolute bottom-6 right-6 w-80 bg-slate-900/90 backdrop-blur-lg border border-slate-700/50 p-6 rounded-xl shadow-2xl pointer-events-auto">

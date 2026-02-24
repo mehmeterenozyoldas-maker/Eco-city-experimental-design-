@@ -6,9 +6,10 @@ import { EnergyStream } from './EnergyStream';
 interface SolarFarmProps {
   count: number;
   sunIntensity: number;
+  onSelect?: (u: any) => void;
 }
 
-export const SolarFarm: React.FC<SolarFarmProps> = ({ count, sunIntensity }) => {
+export const SolarFarm: React.FC<SolarFarmProps> = ({ count, sunIntensity, onSelect }) => {
   const panels = useMemo(() => {
     const temp = [];
     const size = Math.ceil(Math.sqrt(count));
@@ -28,7 +29,10 @@ export const SolarFarm: React.FC<SolarFarmProps> = ({ count, sunIntensity }) => 
   const isActive = sunIntensity > 20;
 
   return (
-    <group>
+    <group onClick={(e) => {
+      e.stopPropagation();
+      if (onSelect) onSelect({ type: 'Solar Farm', stats: { Panels: count, SunIntensity: `${Math.round(sunIntensity)}%`, Output: `${Math.round((sunIntensity / 100) * 60)} MW` } });
+    }}>
         {/* Panel Stands */}
         <Instances range={count}>
             <cylinderGeometry args={[0.1, 0.1, 1]} />
